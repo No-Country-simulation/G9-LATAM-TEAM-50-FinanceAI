@@ -1,3 +1,20 @@
+
+package com.financeai.service.impl;
+
+import java.time.LocalDateTime;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.financeai.dto.request.RegisterRequest;
+import com.financeai.dto.response.RegisterResponse;
+import com.financeai.entity.Usuario;
+import com.financeai.enums.Rol;
+import com.financeai.repository.UsuarioRepository;
+import com.financeai.service.UserService;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
