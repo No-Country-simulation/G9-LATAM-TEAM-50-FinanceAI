@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.financeai.exception.ResourceAlreadyExistsException;
+
 import com.financeai.dto.request.RegisterRequest;
 import com.financeai.dto.response.RegisterResponse;
 import com.financeai.entity.Usuario;
@@ -27,11 +29,11 @@ public class UserServiceImpl implements UserService {
     public RegisterResponse register(RegisterRequest request) {
 
         if (usuarioRepository.existsByCorreo(request.getCorreo())) {
-            throw new RuntimeException("El correo ya está registrado.");
+            throw new ResourceAlreadyExistsException("El correo ya está registrado.");
         }
 
         if (usuarioRepository.existsByDocumento(request.getDocumento())) {
-            throw new RuntimeException("El documento ya está registrado.");
+            throw new ResourceAlreadyExistsException("El documento ya está registrado.");
         }
 
         Usuario usuario = Usuario.builder()
