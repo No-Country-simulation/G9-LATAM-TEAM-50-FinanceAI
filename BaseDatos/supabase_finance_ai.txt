@@ -1,0 +1,9 @@
+Supabase
+
+proyecto: Finance_ai
+Contraseña: OM4Z18npMehPHzXz
+
+
+URL = https://fwwfousuakgdhdrdgawb.supabase.co
+Key = sb_publishable_n3HZOqPtxWdJDKjp2XieHA_addTOIXh
+connection = postgresql://postgres:[YOUR-PASSWORD]@db.fwwfousuakgdhdrdgawb.supabase.co:5432/postgres
