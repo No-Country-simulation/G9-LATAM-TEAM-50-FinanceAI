@@ -1,6 +1,5 @@
 package com.financeai.entity;
 
-import com.financeai.enums.Rol;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -35,7 +34,8 @@ public class Usuario {
     private String contrasena;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "rol", nullable = false, length = 20)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="rol_id")
     private Rol rol;
 
     @Column(name = "activo")
