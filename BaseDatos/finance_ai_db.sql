@@ -15,6 +15,13 @@ CREATE TABLE categoria (
     tipo VARCHAR(30) NOT NULL
 );
 
+--Tabla Rol
+CREATE TABLE rol (
+    rol_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(30) NOT NULL UNIQUE,
+    activo BOOLEAN DEFAULT TRUE
+);
+
 -- Tabla Usuario
 CREATE TABLE usuario (
     usuario_id SERIAL PRIMARY KEY,
@@ -23,8 +30,10 @@ CREATE TABLE usuario (
     edad INT NOT NULL,
     correo VARCHAR(255) UNIQUE NOT NULL,
     contrasena VARCHAR(255) NOT NULL,
-    rol VARCHAR(20) NOT NULL,
     activo BOOLEAN DEFAULT TRUE,
+
+	-- Claves Foráneas
+	 rol_id INT NOT NULL,
     
     -- Campos de Auditoría
     register_user_id VARCHAR(100),
@@ -32,7 +41,10 @@ CREATE TABLE usuario (
     ip_register VARCHAR(45),
     user_edit VARCHAR(100),
     edit_date TIMESTAMP, 
-    ip_edit VARCHAR(45)
+    ip_edit VARCHAR(45),
+
+	CONSTRAINT fk_usuario_rol 
+		FOREIGN KEY (rol_id) REFERENCES rol (rol_id)
 );
 
 -- Tabla Transacción
