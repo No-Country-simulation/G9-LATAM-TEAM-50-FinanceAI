@@ -21,9 +21,6 @@ public class Rol {
     private String nombre;
 
     @Column
-    private String descripcion;
-
-    @Column
     private Boolean activo;
 
 }
