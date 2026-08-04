@@ -2,16 +2,21 @@ package com.financeai.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 @Entity
 @Table(name = "usuario")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Usuario {
+public class Usuario  implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,7 +44,7 @@ public class Usuario {
     private Rol rol;
 
     @Column(name = "activo")
-    private Boolean activo;
+    private Boolean activo = true;
 
     @Column(name = "register_date")
     private LocalDateTime registerDate;
@@ -60,5 +65,23 @@ public class Usuario {
     private String ipEdit;
 
 
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("CLIENTE"));
+    }
 
+    @Override
+    public String getPassword() {
+        return this.getContrasena();
+    }
+
+    @Override
+    public String getUsername() {
+        return this.getCorreo();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.activo; // Si 'activo' es false, Spring bloqueará el login
+    }
 }

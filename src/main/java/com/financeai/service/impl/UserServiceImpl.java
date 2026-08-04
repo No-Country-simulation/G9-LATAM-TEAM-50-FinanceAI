@@ -43,6 +43,7 @@ public class UserServiceImpl implements UserService {
             throw new ResourceAlreadyExistsException("El documento ya está registrado.");
         }
 
+
         // Buscar el rol CLIENTE
         Rol rolCliente = rolRepository.findByNombre("CLIENTE")
                 .orElseThrow(() ->

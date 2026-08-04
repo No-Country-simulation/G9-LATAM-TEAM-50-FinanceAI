@@ -2,6 +2,8 @@ package com.financeai.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.HashMap;
@@ -96,6 +98,15 @@ public class GlobalExceptionHandler {
 
                 .body(response);
 
+    }
+
+    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+    public ResponseEntity<?> tratarErrorAutenticacion(Exception e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                        "error", "Credenciales inválidas",
+                        "mensaje", "El correo o la contraseña son incorrectos."
+                ));
     }
 
 }

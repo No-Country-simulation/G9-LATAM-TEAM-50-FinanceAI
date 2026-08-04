@@ -17,4 +17,5 @@ public class RegisterResponse {
 
     private String mensaje;
 
+    private String contrasena;
 }
