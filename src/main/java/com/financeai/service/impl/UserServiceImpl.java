@@ -1,17 +1,14 @@
 package com.financeai.service.impl;
 
 import java.time.LocalDateTime;
-
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.financeai.exception.ResourceNotFoundException;
 import com.financeai.dto.request.RegisterRequest;
 import com.financeai.dto.response.RegisterResponse;
 import com.financeai.entity.Rol;
 import com.financeai.entity.Usuario;
-import com.financeai.exception.ResourceAlreadyExistsException;
 import com.financeai.exception.ResourceAlreadyExistsException;
 import com.financeai.repository.RolRepository;
 import com.financeai.repository.UsuarioRepository;
