@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDateTime;
 
 import java.util.List;
@@ -39,6 +42,9 @@ import com.financeai.exception.ResourceNotFoundException;
 @RequiredArgsConstructor
 public class TransaccionServiceImpl implements TransaccionService {
 
+    private static final Logger logger =
+            LoggerFactory.getLogger(TransaccionServiceImpl.class);
+
     private final TransaccionRepository transaccionRepository;
 
     private final UsuarioRepository usuarioRepository;
@@ -61,6 +67,8 @@ public class TransaccionServiceImpl implements TransaccionService {
     @Override
     @Transactional
     public TransaccionResponse crearTransaccion(TransaccionRequest request) {
+
+        logger.info("Iniciando registro de transacción...");
 
         Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
                 .orElseThrow(() ->
@@ -161,42 +169,43 @@ public class TransaccionServiceImpl implements TransaccionService {
     }
 
     @Override
-    @Transactional
-    public TransaccionResponse actualizarTransaccion(Integer id, TransaccionRequest request) {
-        log.info("Iniciando la actualización de la transacción con ID: {}", id);
+    public TransaccionResponse actualizarTransaccion(
+            Integer id,
+            TransaccionRequest request) {
 
-        // 1. Verificar si la transacción existe
-        Transaccion transaccionExistente = transaccionRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Error: Transacción con ID {} no encontrada para actualizar", id);
-                    return new ResourceNotFoundException("Transacción no encontrada.");
-                });
+        log.info("Actualizando transacción {}", id);
 
-        // 2. Verificar y actualizar el Usuario si cambió
-        if (!transaccionExistente.getUsuario().getUsuarioId().equals(request.getUsuarioId())) {
-            log.info("Cambiando usuario de la transacción al ID: {}", request.getUsuarioId());
-            Usuario nuevoUsuario = usuarioRepository.findById(request.getUsuarioId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado."));
-            transaccionExistente.setUsuario(nuevoUsuario);
-        }
+        Transaccion transaccion =
+                transaccionRepository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Transacción no encontrada."));
 
-        // 3. Verificar y actualizar la Categoría si cambió
-        if (!transaccionExistente.getCategoria().getCategoriaId().equals(request.getCategoriaId())) {
-            log.info("Cambiando categoría de la transacción al ID: {}", request.getCategoriaId());
-            Categoria nuevaCategoria = categoriaRepository.findById(request.getCategoriaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada."));
-            transaccionExistente.setCategoria(nuevaCategoria);
-        }
+        Usuario usuario =
+                usuarioRepository.findById(request.getUsuarioId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Usuario no encontrado."));
 
-        // 4. Actualizar los datos primitivos/propios de la transacción
-        transaccionExistente.setDescripcion(request.getDescripcion());
-        transaccionExistente.setMonto(request.getMonto());
-        transaccionExistente.setMetodoPago(request.getMetodoPago());
+        Categoria categoria =
+                categoriaRepository.findById(request.getCategoriaId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Categoría no encontrada."));
 
+        transaccion.setDescripcion(request.getDescripcion());
+        transaccion.setMonto(request.getMonto());
+        transaccion.setMetodoPago(request.getMetodoPago());
 
-        // 5. Guardar cambios y retornar respuesta mapeada
-        Transaccion actualizada = transaccionRepository.save(transaccionExistente);
-        log.info("Transacción con ID: {} actualizada exitosamente", id);
+        transaccion.setUsuario(usuario);
+        transaccion.setCategoria(categoria);
+
+        transaccion.setUserEdit("SYSTEM");
+        transaccion.setEditDate(LocalDateTime.now());
+        transaccion.setIpEdit("127.0.0.1");
+
+        Transaccion actualizada =
+                transaccionRepository.save(transaccion);
 
         return convertirRespuesta(actualizada);
     }

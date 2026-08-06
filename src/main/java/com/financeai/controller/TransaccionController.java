@@ -1,16 +1,15 @@
 package com.financeai.controller;
 
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-
 import com.financeai.dto.request.TransaccionRequest;
 import com.financeai.dto.response.TransaccionResponse;
 import com.financeai.service.TransaccionService;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/transacciones")
@@ -20,54 +19,63 @@ public class TransaccionController {
     private final TransaccionService transaccionService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public TransaccionResponse crear(
-            @Valid @RequestBody TransaccionRequest request){
+    public ResponseEntity<TransaccionResponse> crearTransaccion(
+            @Valid @RequestBody TransaccionRequest request) {
 
-        return transaccionService.crearTransaccion(request);
+        TransaccionResponse response =
+                transaccionService.crearTransaccion(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @GetMapping
-    public List<TransaccionResponse> listar(){
+    public ResponseEntity<List<TransaccionResponse>> listarTransacciones() {
 
-        return transaccionService.listarTransacciones();
+        return ResponseEntity.ok(
+                transaccionService.listarTransacciones());
     }
 
     @GetMapping("/{id}")
-    public TransaccionResponse obtener(
-            @PathVariable Integer id){
+    public ResponseEntity<TransaccionResponse> obtenerTransaccion(
+            @PathVariable Integer id) {
 
-        return transaccionService.obtenerTransaccion(id);
+        return ResponseEntity.ok(
+                transaccionService.obtenerTransaccion(id));
     }
 
     @PutMapping("/{id}")
-    public TransaccionResponse actualizar(
+    public ResponseEntity<TransaccionResponse> actualizarTransaccion(
             @PathVariable Integer id,
-            @Valid @RequestBody TransaccionRequest request){
+            @Valid @RequestBody TransaccionRequest request) {
 
-        return transaccionService.actualizarTransaccion(id, request);
+        return ResponseEntity.ok(
+                transaccionService.actualizarTransaccion(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(
-            @PathVariable Integer id){
+    public ResponseEntity<Void> eliminarTransaccion(
+            @PathVariable Integer id) {
 
         transaccionService.eliminarTransaccion(id);
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/usuario/{usuarioId}")
-    public List<TransaccionResponse> listarPorUsuario(
-            @PathVariable Integer usuarioId){
+    public ResponseEntity<List<TransaccionResponse>> listarPorUsuario(
+            @PathVariable Integer usuarioId) {
 
-        return transaccionService.listarPorUsuario(usuarioId);
+        return ResponseEntity.ok(
+                transaccionService.listarPorUsuario(usuarioId));
     }
 
     @GetMapping("/categoria/{categoriaId}")
-    public List<TransaccionResponse> listarPorCategoria(
-            @PathVariable Integer categoriaId){
+    public ResponseEntity<List<TransaccionResponse>> listarPorCategoria(
+            @PathVariable Integer categoriaId) {
 
-        return transaccionService.listarPorCategoria(categoriaId);
+        return ResponseEntity.ok(
+                transaccionService.listarPorCategoria(categoriaId));
     }
-
 }
