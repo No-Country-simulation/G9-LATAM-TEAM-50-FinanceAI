@@ -1,0 +1,2 @@
+ALTER TABLE usuario
+ADD COLUMN update_date TIMESTAMP;
