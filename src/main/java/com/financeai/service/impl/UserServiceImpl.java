@@ -15,6 +15,7 @@ import com.financeai.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -146,10 +147,11 @@ public class UserServiceImpl implements UserService {
 
 
         // 4. Generar JWT
-        String token =
-                jwtService.generateToken(
-                        usuario.getCorreo()
-                );
+        String token = jwtService.generateToken(
+                usuario.getUsuarioId(),
+                usuario.getCorreo(),
+                usuario.getRol().getNombre()
+        );
 
 
         // 5. Obtener rol
@@ -173,6 +175,7 @@ public class UserServiceImpl implements UserService {
                         usuario.getCorreo()
                 )
                 .rol(rol)
+                .mensaje("Inicio de sesión exitoso.")
                 .build();
     }
 }

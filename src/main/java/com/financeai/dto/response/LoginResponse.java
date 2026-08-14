@@ -20,4 +20,8 @@ public class LoginResponse {
     private String correo;
 
     private String rol;
+
+    private String mensaje;
+
+
 }

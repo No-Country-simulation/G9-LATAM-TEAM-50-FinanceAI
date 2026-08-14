@@ -1,7 +1,9 @@
 package com.financeai.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -11,52 +13,62 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "contrasenia_de_prueba";
+    private final SecretKey secretKey;
+    private final long expiration;
 
-    private static final long EXPIRATION_TIME =
-            1000 * 60 * 60; // 1 hora
+    public JwtService(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration}") long expiration
+    ) {
 
-    private SecretKey getSigningKey() {
-
-        return Keys.hmacShaKeyFor(
-                SECRET_KEY.getBytes(StandardCharsets.UTF_8)
+        this.secretKey = Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
         );
+
+        this.expiration = expiration;
     }
 
-    public String generateToken(String correo) {
+    public String generateToken(
+            Integer usuarioId,
+            String correo,
+            String rol
+    ) {
 
         Date now = new Date();
 
-        Date expiration = new Date(
-                now.getTime() + EXPIRATION_TIME
-        );
+        Date expirationDate =
+                new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .subject(correo)
+                .claim("usuarioId", usuarioId)
+                .claim("rol", rol)
                 .issuedAt(now)
-                .expiration(expiration)
-                .signWith(getSigningKey())
+                .expiration(expirationDate)
+                .signWith(secretKey)
                 .compact();
     }
 
     public String extractCorreo(String token) {
 
+        return extractClaims(token)
+                .getSubject();
+    }
+
+    public Claims extractClaims(String token) {
+
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
     }
 
     public boolean isTokenValid(String token) {
 
         try {
 
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
+            extractClaims(token);
 
             return true;
 
