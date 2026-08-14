@@ -1,24 +1,26 @@
 package com.financeai.service.impl;
 
-import java.time.LocalDateTime;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import com.financeai.exception.ResourceNotFoundException;
+import com.financeai.dto.request.LoginRequest;
 import com.financeai.dto.request.RegisterRequest;
+import com.financeai.dto.response.LoginResponse;
 import com.financeai.dto.response.RegisterResponse;
 import com.financeai.entity.Rol;
 import com.financeai.entity.Usuario;
 import com.financeai.exception.ResourceAlreadyExistsException;
+import com.financeai.exception.ResourceNotFoundException;
 import com.financeai.repository.RolRepository;
 import com.financeai.repository.UsuarioRepository;
+import com.financeai.security.JwtService;
 import com.financeai.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -29,66 +31,148 @@ public class UserServiceImpl implements UserService {
 
     private final PasswordEncoder passwordEncoder;
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public RegisterResponse register(RegisterRequest request) {
+    private final JwtService jwtService;
 
-        log.info("===== Inicio del registro de usuario =====");
-        log.info("Correo recibido: {}", request.getCorreo());
+
+    // ==============================
+    // REGISTRO
+    // ==============================
+
+    @Override
+    @Transactional
+    public RegisterResponse register(RegisterRequest request) {
 
         // Verificar correo
         if (usuarioRepository.existsByCorreo(request.getCorreo())) {
-            log.warn("Intento de registro con correo existente: {}", request.getCorreo());
-            throw new ResourceAlreadyExistsException("El correo ya está registrado.");
+
+            throw new ResourceAlreadyExistsException(
+                    "El correo ya está registrado."
+            );
         }
 
         // Verificar documento
         if (usuarioRepository.existsByDocumento(request.getDocumento())) {
-            log.warn("Documento ya registrado: {}", request.getDocumento());
-            throw new ResourceAlreadyExistsException("El documento ya está registrado.");
+
+            throw new ResourceAlreadyExistsException(
+                    "El documento ya está registrado."
+            );
         }
 
-        // Buscar el rol CLIENTE
-        log.info("Buscando rol CLIENTE...");
-
+        // Buscar rol CLIENTE
         Rol rolCliente = rolRepository.findByNombre("CLIENTE")
-                .orElseThrow(() -> {
-
-                    log.error("No existe el rol CLIENTE en la base de datos");
-
-                    return new ResourceNotFoundException("El rol CLIENTE no existe.");
-                });
-
-        log.info("Rol encontrado: {}", rolCliente.getNombre());
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "El rol CLIENTE no existe."
+                        )
+                );
 
         // Crear usuario
         Usuario usuario = Usuario.builder()
-
                 .nombreCompleto(request.getNombreCompleto())
                 .documento(request.getDocumento())
                 .edad(request.getEdad())
                 .correo(request.getCorreo())
-                .contrasena(passwordEncoder.encode(request.getContrasena()))
+                .contrasena(
+                        passwordEncoder.encode(
+                                request.getContrasena()
+                        )
+                )
                 .rol(rolCliente)
                 .activo(true)
+                .registerDate(LocalDateTime.now())
+                .registerUserId("SYSTEM")
                 .build();
 
-        // Guardar usuario
-        log.info("Guardando usuario...");
-
-        Usuario usuarioGuardado = usuarioRepository.save(usuario);
-
-        log.info("Usuario guardado correctamente.");
-
-        log.info("ID generado: {}", usuarioGuardado.getUsuarioId());
+        // Guardar
+        Usuario usuarioGuardado =
+                usuarioRepository.save(usuario);
 
         // Respuesta
-        log.info("Registro finalizado correctamente.");
         return RegisterResponse.builder()
                 .usuarioId(usuarioGuardado.getUsuarioId())
-                .nombreCompleto(usuarioGuardado.getNombreCompleto())
-                .correo(usuarioGuardado.getCorreo())
-                .mensaje("Usuario registrado correctamente.")
+                .nombreCompleto(
+                        usuarioGuardado.getNombreCompleto()
+                )
+                .correo(
+                        usuarioGuardado.getCorreo()
+                )
+                .mensaje(
+                        "Usuario registrado correctamente."
+                )
+                .build();
+    }
+
+
+    // ==============================
+    // LOGIN
+    // ==============================
+
+    @Override
+    @Transactional(readOnly = true)
+    public LoginResponse login(LoginRequest request) {
+
+        // 1. Buscar usuario por correo
+        Usuario usuario = usuarioRepository
+                .findByCorreo(request.getCorreo())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Correo o contraseña incorrectos."
+                        )
+                );
+
+
+        // 2. Verificar si está activo
+        if (!Boolean.TRUE.equals(usuario.getActivo())) {
+
+            throw new RuntimeException(
+                    "El usuario está inactivo."
+            );
+        }
+
+
+        // 3. Verificar contraseña
+        boolean passwordCorrecta =
+                passwordEncoder.matches(
+                        request.getContrasena(),
+                        usuario.getContrasena()
+                );
+
+        if (!passwordCorrecta) {
+
+            throw new RuntimeException(
+                    "Correo o contraseña incorrectos."
+            );
+        }
+
+
+        // 4. Generar JWT
+        String token =
+                jwtService.generateToken(
+                        usuario.getCorreo()
+                );
+
+
+        // 5. Obtener rol
+        String rol = null;
+
+        if (usuario.getRol() != null) {
+
+            rol = usuario.getRol().getNombre();
+        }
+
+
+        // 6. Devolver respuesta
+        return LoginResponse.builder()
+                .token(token)
+                .tipo("Bearer")
+                .usuarioId(usuario.getUsuarioId())
+                .nombreCompleto(
+                        usuario.getNombreCompleto()
+                )
+                .correo(
+                        usuario.getCorreo()
+                )
+                .rol(rol)
                 .build();
     }
 }
