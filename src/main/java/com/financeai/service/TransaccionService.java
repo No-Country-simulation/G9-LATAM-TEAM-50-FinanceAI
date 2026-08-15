@@ -7,18 +7,26 @@ import java.util.List;
 
 public interface TransaccionService {
 
-    TransaccionResponse crearTransaccion(TransaccionRequest request);
+    TransaccionResponse crearTransaccion(
+            TransaccionRequest request
+    );
 
     List<TransaccionResponse> listarTransacciones();
 
-    TransaccionResponse obtenerTransaccion(Integer id);
+    TransaccionResponse obtenerTransaccion(
+            Integer id
+    );
 
-    TransaccionResponse actualizarTransaccion(Integer id, TransaccionRequest request);
+    TransaccionResponse actualizarTransaccion(
+            Integer id,
+            TransaccionRequest request
+    );
 
-    void eliminarTransaccion(Integer id);
+    void eliminarTransaccion(
+            Integer id
+    );
 
-    List<TransaccionResponse> listarPorUsuario(Integer usuarioId);
-
-    List<TransaccionResponse> listarPorCategoria(Integer categoriaId);
-
+    List<TransaccionResponse> listarPorCategoria(
+            Integer categoriaId
+    );
 }

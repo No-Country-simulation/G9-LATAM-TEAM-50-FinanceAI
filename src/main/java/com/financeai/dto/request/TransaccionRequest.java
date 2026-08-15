@@ -1,7 +1,6 @@
 package com.financeai.dto.request;
 
-import jakarta.validation.constraints.*;
-
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -13,20 +12,14 @@ import java.math.BigDecimal;
 @Builder
 public class TransaccionRequest {
 
-    @NotBlank(message = "La descripción es obligatoria.")
     private String descripcion;
 
-    @NotNull(message = "El monto es obligatorio.")
-    @DecimalMin(value = "0.01", message = "El monto debe ser mayor a cero.")
+    @NotNull
     private BigDecimal monto;
 
-    @NotBlank(message = "El método de pago es obligatorio.")
+    @NotNull
     private String metodoPago;
 
-    @NotNull(message = "La categoría es obligatoria.")
+    @NotNull
     private Integer categoriaId;
-
-    @NotNull(message = "El usuario es obligatorio.")
-    private Integer usuarioId;
-
 }

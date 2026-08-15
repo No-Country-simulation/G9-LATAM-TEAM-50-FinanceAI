@@ -1,49 +1,31 @@
 package com.financeai.service.impl;
 
+import com.financeai.dto.request.TransaccionRequest;
+import com.financeai.dto.response.TransaccionResponse;
+import com.financeai.entity.Categoria;
+import com.financeai.entity.Transaccion;
+import com.financeai.entity.Usuario;
+import com.financeai.exception.ResourceNotFoundException;
+import com.financeai.repository.CategoriaRepository;
+import com.financeai.repository.TransaccionRepository;
+import com.financeai.repository.UsuarioRepository;
 import com.financeai.service.TransaccionService;
 
 import lombok.RequiredArgsConstructor;
-
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.LocalDateTime;
-
-import java.util.List;
-
-import java.util.stream.Collectors;
-
 import org.springframework.transaction.annotation.Transactional;
 
-import com.financeai.dto.request.TransaccionRequest;
-
-import com.financeai.dto.response.TransaccionResponse;
-
-import com.financeai.entity.Categoria;
-
-import com.financeai.entity.Usuario;
-
-import com.financeai.entity.Transaccion;
-
-import com.financeai.repository.CategoriaRepository;
-
-import com.financeai.repository.UsuarioRepository;
-
-import com.financeai.repository.TransaccionRepository;
-
-import com.financeai.exception.ResourceNotFoundException;
-
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransaccionServiceImpl implements TransaccionService {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(TransaccionServiceImpl.class);
 
     private final TransaccionRepository transaccionRepository;
 
@@ -51,7 +33,45 @@ public class TransaccionServiceImpl implements TransaccionService {
 
     private final CategoriaRepository categoriaRepository;
 
-    private TransaccionResponse convertirRespuesta(Transaccion transaccion) {
+
+    // =========================================================
+    // OBTENER USUARIO AUTENTICADO
+    // =========================================================
+
+    private Usuario obtenerUsuarioAutenticado() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new ResourceNotFoundException(
+                    "Usuario no autenticado."
+            );
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (!(principal instanceof Usuario)) {
+
+            throw new ResourceNotFoundException(
+                    "No fue posible identificar al usuario autenticado."
+            );
+        }
+
+        return (Usuario) principal;
+    }
+
+
+    // =========================================================
+    // CONVERTIR ENTITY -> RESPONSE
+    // =========================================================
+
+    private TransaccionResponse convertirRespuesta(
+            Transaccion transaccion) {
 
         return TransaccionResponse.builder()
                 .transaccionId(transaccion.getTransaccionId())
@@ -59,158 +79,301 @@ public class TransaccionServiceImpl implements TransaccionService {
                 .monto(transaccion.getMonto())
                 .fecha(transaccion.getFecha())
                 .metodoPago(transaccion.getMetodoPago())
-                .categoria(transaccion.getCategoria().getNombre())
-                .usuario(transaccion.getUsuario().getNombreCompleto())
+                .categoria(
+                        transaccion.getCategoria().getNombre()
+                )
+                .usuario(
+                        transaccion.getUsuario().getNombreCompleto()
+                )
                 .build();
     }
+
+
+    // =========================================================
+    // CREAR TRANSACCION
+    // =========================================================
 
     @Override
     @Transactional
-    public TransaccionResponse crearTransaccion(TransaccionRequest request) {
+    public TransaccionResponse crearTransaccion(
+            TransaccionRequest request) {
 
-        logger.info("Iniciando registro de transacción...");
+        log.info("Iniciando registro de transacción");
 
-        Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Usuario no encontrado."));
+        // Usuario obtenido desde JWT
+        Usuario usuario = obtenerUsuarioAutenticado();
 
-        Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Categoría no encontrada."));
+        // Buscar categoría
+        Categoria categoria =
+                categoriaRepository
+                        .findById(request.getCategoriaId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Categoría no encontrada."
+                                )
+                        );
 
-        Transaccion transaccion = Transaccion.builder()
-                .descripcion(request.getDescripcion())
-                .monto(request.getMonto())
-                .fecha(LocalDateTime.now())
-                .metodoPago(request.getMetodoPago())
-                .categoria(categoria)
-                .usuario(usuario)
-                .registerUserId("SYSTEM")
-                .registerDate(LocalDateTime.now())
-                .ipRegister("127.0.0.1")
-                .build();
+        // Crear transacción
+        Transaccion transaccion =
+                Transaccion.builder()
+                        .descripcion(request.getDescripcion())
+                        .monto(request.getMonto())
+                        .fecha(LocalDateTime.now())
+                        .metodoPago(request.getMetodoPago())
+                        .categoria(categoria)
+                        .usuario(usuario)
+                        .registerUserId(
+                                usuario.getCorreo()
+                        )
+                        .registerDate(
+                                LocalDateTime.now()
+                        )
+                        .ipRegister("127.0.0.1")
+                        .build();
 
-        Transaccion guardada = transaccionRepository.save(transaccion);
+        Transaccion guardada =
+                transaccionRepository.save(transaccion);
+
+        log.info(
+                "Transacción {} creada para usuario {}",
+                guardada.getTransaccionId(),
+                usuario.getUsuarioId()
+        );
 
         return convertirRespuesta(guardada);
     }
+
+
+    // =========================================================
+    // LISTAR TRANSACCIONES DEL USUARIO AUTENTICADO
+    // =========================================================
 
     @Override
     @Transactional(readOnly = true)
     public List<TransaccionResponse> listarTransacciones() {
 
-        log.info("Consultando todas las transacciones");
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        log.info(
+                "Consultando transacciones del usuario {}",
+                usuario.getUsuarioId()
+        );
 
         List<Transaccion> transacciones =
-                transaccionRepository.findAll();
+                transaccionRepository
+                        .findByUsuarioUsuarioId(
+                                usuario.getUsuarioId()
+                        );
 
         return transacciones.stream()
                 .map(this::convertirRespuesta)
                 .toList();
     }
 
+
+    // =========================================================
+    // OBTENER UNA TRANSACCION
+    // =========================================================
+
     @Override
     @Transactional(readOnly = true)
-    public TransaccionResponse obtenerTransaccion(Integer id) {
+    public TransaccionResponse obtenerTransaccion(
+            Integer id) {
 
-        log.info("Consultando transacción {}", id);
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        log.info(
+                "Consultando transacción {} del usuario {}",
+                id,
+                usuario.getUsuarioId()
+        );
 
         Transaccion transaccion =
-                transaccionRepository.findById(id)
+                transaccionRepository
+                        .findById(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Transacción no encontrada."));
+                                        "Transacción no encontrada."
+                                )
+                        );
+
+        // Seguridad:
+        // verificar que pertenece al usuario autenticado
+        if (!transaccion.getUsuario()
+                .getUsuarioId()
+                .equals(usuario.getUsuarioId())) {
+
+            throw new ResourceNotFoundException(
+                    "Transacción no encontrada."
+            );
+        }
 
         return convertirRespuesta(transaccion);
-
     }
 
+
+    // =========================================================
+    // ELIMINAR TRANSACCION
+    // =========================================================
+
     @Override
+    @Transactional
     public void eliminarTransaccion(Integer id) {
 
-        log.info("Eliminando transacción {}", id);
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        log.info(
+                "Eliminando transacción {} del usuario {}",
+                id,
+                usuario.getUsuarioId()
+        );
 
         Transaccion transaccion =
-                transaccionRepository.findById(id)
+                transaccionRepository
+                        .findById(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Transacción no encontrada."));
+                                        "Transacción no encontrada."
+                                )
+                        );
+
+        // Verificar propietario
+        if (!transaccion.getUsuario()
+                .getUsuarioId()
+                .equals(usuario.getUsuarioId())) {
+
+            throw new ResourceNotFoundException(
+                    "Transacción no encontrada."
+            );
+        }
 
         transaccionRepository.delete(transaccion);
-
     }
+
+
+    // =========================================================
+    // LISTAR POR CATEGORIA
+    // =========================================================
 
     @Override
     @Transactional(readOnly = true)
-    public List<TransaccionResponse> listarPorUsuario(Integer usuarioId) {
+    public List<TransaccionResponse> listarPorCategoria(
+            Integer categoriaId) {
 
-        log.info("Consultando transacciones del usuario {}", usuarioId);
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        log.info(
+                "Consultando categoría {} para usuario {}",
+                categoriaId,
+                usuario.getUsuarioId()
+        );
 
         List<Transaccion> transacciones =
-                transaccionRepository.findByUsuarioUsuarioId(usuarioId);
+                transaccionRepository
+                        .findByCategoriaCategoriaId(
+                                categoriaId
+                        );
 
+        // Filtrar para que solamente regresen
+        // transacciones del usuario autenticado
         return transacciones.stream()
+                .filter(transaccion ->
+                        transaccion.getUsuario()
+                                .getUsuarioId()
+                                .equals(
+                                        usuario.getUsuarioId()
+                                )
+                )
                 .map(this::convertirRespuesta)
                 .toList();
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<TransaccionResponse> listarPorCategoria(Integer categoriaId) {
 
-        log.info("Consultando transacciones de la categoría {}", categoriaId);
-
-        List<Transaccion> transacciones =
-                transaccionRepository.findByCategoriaCategoriaId(categoriaId);
-
-        return transacciones.stream()
-                .map(this::convertirRespuesta)
-                .toList();
-    }
+    // =========================================================
+    // ACTUALIZAR TRANSACCION
+    // =========================================================
 
     @Override
+    @Transactional
     public TransaccionResponse actualizarTransaccion(
             Integer id,
             TransaccionRequest request) {
 
-        log.info("Actualizando transacción {}", id);
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        log.info(
+                "Actualizando transacción {} del usuario {}",
+                id,
+                usuario.getUsuarioId()
+        );
 
         Transaccion transaccion =
-                transaccionRepository.findById(id)
+                transaccionRepository
+                        .findById(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Transacción no encontrada."));
+                                        "Transacción no encontrada."
+                                )
+                        );
 
-        Usuario usuario =
-                usuarioRepository.findById(request.getUsuarioId())
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Usuario no encontrado."));
+        // Verificar propietario
+        if (!transaccion.getUsuario()
+                .getUsuarioId()
+                .equals(usuario.getUsuarioId())) {
 
+            throw new ResourceNotFoundException(
+                    "Transacción no encontrada."
+            );
+        }
+
+        // Buscar categoría
         Categoria categoria =
-                categoriaRepository.findById(request.getCategoriaId())
+                categoriaRepository
+                        .findById(request.getCategoriaId())
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Categoría no encontrada."));
+                                        "Categoría no encontrada."
+                                )
+                        );
 
-        transaccion.setDescripcion(request.getDescripcion());
-        transaccion.setMonto(request.getMonto());
-        transaccion.setMetodoPago(request.getMetodoPago());
+        // Actualizar datos
+        transaccion.setDescripcion(
+                request.getDescripcion()
+        );
 
+        transaccion.setMonto(
+                request.getMonto()
+        );
+
+        transaccion.setMetodoPago(
+                request.getMetodoPago()
+        );
+
+        transaccion.setCategoria(
+                categoria
+        );
+
+        // NO cambia el usuario.
         transaccion.setUsuario(usuario);
-        transaccion.setCategoria(categoria);
 
-        transaccion.setUserEdit("SYSTEM");
-        transaccion.setEditDate(LocalDateTime.now());
-        transaccion.setIpEdit("127.0.0.1");
+        // Auditoría
+        transaccion.setUserEdit(
+                usuario.getCorreo()
+        );
+
+        transaccion.setEditDate(
+                LocalDateTime.now()
+        );
+
+        transaccion.setIpEdit(
+                "127.0.0.1"
+        );
 
         Transaccion actualizada =
-                transaccionRepository.save(transaccion);
+                transaccionRepository.save(
+                        transaccion
+                );
 
         return convertirRespuesta(actualizada);
     }
-
-
-
-
 }
