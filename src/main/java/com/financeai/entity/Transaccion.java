@@ -29,6 +29,9 @@ public class Transaccion {
     @Column(nullable = false)
     private LocalDateTime fecha;
 
+    @Column(name = "tipo", length = 10)
+    private String tipo;
+
     @Column(name = "metodo_pago", nullable = false, length = 30)
     private String metodoPago;
 

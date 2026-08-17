@@ -20,10 +20,11 @@ public class TransaccionResponse {
 
     private LocalDateTime fecha;
 
+    private String tipo;
+
     private String metodoPago;
 
     private String categoria;
 
     private String usuario;
-
 }

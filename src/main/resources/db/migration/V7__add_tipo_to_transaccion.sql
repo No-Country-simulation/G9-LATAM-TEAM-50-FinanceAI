@@ -1,0 +1,2 @@
+ALTER TABLE transaccion
+ADD COLUMN tipo VARCHAR(10);

@@ -67,6 +67,22 @@ public class TransaccionServiceImpl implements TransaccionService {
 
 
     // =========================================================
+    // VALIDAR EL TIPO DE TRANSACCION
+    // =========================================================
+
+    private void validarTipo(String tipo) {
+
+        if (!"INGRESO".equalsIgnoreCase(tipo) &&
+                !"GASTO".equalsIgnoreCase(tipo)) {
+
+            throw new IllegalArgumentException(
+                    "El tipo debe ser INGRESO o GASTO."
+            );
+        }
+    }
+
+
+    // =========================================================
     // CONVERTIR ENTITY -> RESPONSE
     // =========================================================
 
@@ -78,6 +94,7 @@ public class TransaccionServiceImpl implements TransaccionService {
                 .descripcion(transaccion.getDescripcion())
                 .monto(transaccion.getMonto())
                 .fecha(transaccion.getFecha())
+                .tipo(transaccion.getTipo())
                 .metodoPago(transaccion.getMetodoPago())
                 .categoria(
                         transaccion.getCategoria().getNombre()
@@ -98,12 +115,10 @@ public class TransaccionServiceImpl implements TransaccionService {
     public TransaccionResponse crearTransaccion(
             TransaccionRequest request) {
 
-        log.info("Iniciando registro de transacción");
-
-        // Usuario obtenido desde JWT
         Usuario usuario = obtenerUsuarioAutenticado();
 
-        // Buscar categoría
+        validarTipo(request.getTipo());
+
         Categoria categoria =
                 categoriaRepository
                         .findById(request.getCategoriaId())
@@ -113,21 +128,17 @@ public class TransaccionServiceImpl implements TransaccionService {
                                 )
                         );
 
-        // Crear transacción
         Transaccion transaccion =
                 Transaccion.builder()
                         .descripcion(request.getDescripcion())
                         .monto(request.getMonto())
                         .fecha(LocalDateTime.now())
+                        .tipo(request.getTipo().toUpperCase())
                         .metodoPago(request.getMetodoPago())
                         .categoria(categoria)
                         .usuario(usuario)
-                        .registerUserId(
-                                usuario.getCorreo()
-                        )
-                        .registerDate(
-                                LocalDateTime.now()
-                        )
+                        .registerUserId(usuario.getCorreo())
+                        .registerDate(LocalDateTime.now())
                         .ipRegister("127.0.0.1")
                         .build();
 
@@ -135,8 +146,9 @@ public class TransaccionServiceImpl implements TransaccionService {
                 transaccionRepository.save(transaccion);
 
         log.info(
-                "Transacción {} creada para usuario {}",
+                "Transacción {} creada como {} para usuario {}",
                 guardada.getTransaccionId(),
+                guardada.getTipo(),
                 usuario.getUsuarioId()
         );
 
@@ -336,7 +348,15 @@ public class TransaccionServiceImpl implements TransaccionService {
                                 )
                         );
 
+        //Validar el tipo de categoria
+        validarTipo(request.getTipo());
+
+
         // Actualizar datos
+        transaccion.setTipo(
+                request.getTipo().toUpperCase()
+        );
+
         transaccion.setDescripcion(
                 request.getDescripcion()
         );
