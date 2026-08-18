@@ -138,10 +138,10 @@ public class TransaccionServiceImpl implements TransaccionService {
             String nombreCategoriaAI = aiService.obtenerCategoria(request.getDescripcion());
 
             if (nombreCategoriaAI != null) {
-                nombreCategoriaAI = nombreCategoriaAI.toUpperCase().trim();
+                nombreCategoriaAI = nombreCategoriaAI.trim();
                 log.info("La IA devolvió la categoría: {}", nombreCategoriaAI);
 
-                categoria = categoriaRepository.findByNombre(nombreCategoriaAI).orElse(null);
+                categoria = categoriaRepository.findByNombreIgnoreCase(nombreCategoriaAI).orElse(null);
             }
 
         } catch (Exception e) {
@@ -149,10 +149,10 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
 
         if (categoria == null) {
-            log.warn("Asignando categoría por defecto 'OTROS'.");
-            categoria = categoriaRepository.findByNombre("OTROS")
+            log.warn("Asignando categoría por defecto 'Otros'.");
+            categoria = categoriaRepository.findByNombreIgnoreCase("Otros")
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            "Categoría por defecto 'OTROS' no encontrada en la Base de Datos."
+                            "Categoría por defecto 'Otros' no encontrada en la Base de Datos."
                     ));
         }
 
@@ -389,8 +389,8 @@ public class TransaccionServiceImpl implements TransaccionService {
                 String nombreCategoriaIA = aiService.obtenerCategoria(request.getDescripcion());
 
                 if (nombreCategoriaIA != null) {
-                    nombreCategoriaIA = nombreCategoriaIA.toUpperCase().trim();
-                    categoria = categoriaRepository.findByNombre(nombreCategoriaIA).orElse(null);
+                    nombreCategoriaIA = nombreCategoriaIA.trim();
+                    categoria = categoriaRepository.findByNombreIgnoreCase(nombreCategoriaIA).orElse(null);
                 }
             } catch (Exception e) {
                 log.error("Error al obtener categoría por IA en actualización: {}", e.getMessage());
@@ -398,10 +398,10 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
 
         if (categoria == null) {
-            log.warn("Asignando categoría por defecto 'OTROS' en la actualización.");
-            categoria = categoriaRepository.findByNombre("OTROS")
+            log.warn("Asignando categoría por defecto 'Otros' en la actualización.");
+            categoria = categoriaRepository.findByNombreIgnoreCase("Otros")
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            "Categoría por defecto 'OTROS' no encontrada en la Base de Datos."
+                            "Categoría por defecto 'Otros' no encontrada en la Base de Datos."
                     ));
         }
 
