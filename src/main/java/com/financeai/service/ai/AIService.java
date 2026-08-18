@@ -15,7 +15,7 @@ public class AIService {
     }
 
     public String obtenerCategoria(String descripcion) {
-        String url = "http://localhost:8000/clasificar";
+        String url = "http://localhost:8080/clasificar";
 
         PredictRequest request =
                 new PredictRequest(descripcion);
