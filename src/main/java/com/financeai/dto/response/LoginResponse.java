@@ -1,13 +1,17 @@
 package com.financeai.dto.response;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class RegisterResponse {
+public class LoginResponse {
+
+    private String token;
+
+    private String tipo;
 
     private Integer usuarioId;
 
@@ -15,6 +19,9 @@ public class RegisterResponse {
 
     private String correo;
 
+    private String rol;
+
     private String mensaje;
+
 
 }

@@ -5,11 +5,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.financeai.entity.Rol;
+import com.financeai.entity.Categoria;
 
 @Repository
-public interface RolRepository extends JpaRepository<Rol, Integer> {
+public interface CategoriaRepository extends JpaRepository<Categoria, Integer> {
 
-    Optional<Rol> findByNombre(String nombre);
+    Optional<Categoria> findByNombre(String nombre);
 
 }

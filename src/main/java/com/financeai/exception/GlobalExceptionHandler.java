@@ -1,112 +1,66 @@
 package com.financeai.exception;
 
-import jakarta.servlet.http.HttpServletRequest;
-
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-
-import java.util.HashMap;
-import java.util.Map;
-
+import com.financeai.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceAlreadyExistsException.class)
-    public ResponseEntity<ApiError> handleResourceAlreadyExists(
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> manejarNoEncontrado(ResourceNotFoundException ex){
 
-            ResourceAlreadyExistsException ex,
-
-            HttpServletRequest request){
-
-        ApiError error = ApiError.builder()
-
-                .timestamp(LocalDateTime.now())
-
-                .status(HttpStatus.CONFLICT.value())
-
-                .error(HttpStatus.CONFLICT.getReasonPhrase())
-
-                .message(ex.getMessage())
-
-                .path(request.getRequestURI())
-
+        ErrorResponse error = ErrorResponse.builder()
+                .fecha(LocalDateTime.now())
+                .codigo(HttpStatus.NOT_FOUND.value())
+                .error(HttpStatus.NOT_FOUND.name())
+                .mensaje(ex.getMessage())
                 .build();
 
-        return ResponseEntity
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
 
-                .status(HttpStatus.CONFLICT)
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> manejarDuplicado(ResourceAlreadyExistsException ex){
 
-                .body(error);
+        ErrorResponse error = ErrorResponse.builder()
+                .fecha(LocalDateTime.now())
+                .codigo(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.name())
+                .mensaje(ex.getMessage())
+                .build();
 
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse> handleValidationErrors(
+    public ResponseEntity<Map<String,String>> manejarValidaciones(MethodArgumentNotValidException ex){
 
-            MethodArgumentNotValidException ex,
+        Map<String,String> errores = new HashMap<>();
 
-            HttpServletRequest request){
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errores.put(error.getField(), error.getDefaultMessage()));
 
-        Map<String,String> errors = new HashMap<>();
-
-        ex.getBindingResult()
-
-                .getFieldErrors()
-
-                .forEach(error ->
-
-                        errors.put(
-
-                                error.getField(),
-
-                                error.getDefaultMessage()
-
-                        )
-
-                );
-
-        ValidationErrorResponse response =
-
-                ValidationErrorResponse.builder()
-
-                        .timestamp(LocalDateTime.now())
-
-                        .status(HttpStatus.BAD_REQUEST.value())
-
-                        .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-
-                        .message("Error de validación")
-
-                        .path(request.getRequestURI())
-
-                        .errors(errors)
-
-                        .build();
-
-        return ResponseEntity
-
-                .status(HttpStatus.BAD_REQUEST)
-
-                .body(response);
-
+        return ResponseEntity.badRequest().body(errores);
     }
 
-    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
-    public ResponseEntity<?> tratarErrorAutenticacion(Exception e) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of(
-                        "error", "Credenciales inválidas",
-                        "mensaje", "El correo o la contraseña son incorrectos."
-                ));
-    }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> manejarGeneral(Exception ex){
 
+        ErrorResponse error = ErrorResponse.builder()
+                .fecha(LocalDateTime.now())
+                .codigo(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error(HttpStatus.INTERNAL_SERVER_ERROR.name())
+                .mensaje(ex.getMessage())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
 }
