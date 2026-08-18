@@ -27,6 +27,6 @@ public class TransaccionRequest {
     @NotBlank(message = "El método de pago es obligatorio")
     private String metodoPago;
 
-    @NotNull(message = "La categoría es obligatoria")
+    //@NotNull(message = "La categoría es obligatoria")
     private Integer categoriaId;
 }

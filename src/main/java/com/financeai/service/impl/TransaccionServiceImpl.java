@@ -10,6 +10,7 @@ import com.financeai.repository.CategoriaRepository;
 import com.financeai.repository.TransaccionRepository;
 import com.financeai.repository.UsuarioRepository;
 import com.financeai.service.TransaccionService;
+import com.financeai.service.ai.AIService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
     private final CategoriaRepository categoriaRepository;
 
+    private final AIService aiService;
 
     // =========================================================
     // OBTENER USUARIO AUTENTICADO
@@ -107,7 +109,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
 
     // =========================================================
-    // CREAR TRANSACCION
+    // CREAR TRANSACCION CON PREDICCIÓN DE IA
     // =========================================================
 
     @Override
@@ -119,14 +121,40 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         validarTipo(request.getTipo());
 
-        Categoria categoria =
+        /*Categoria categoria =
                 categoriaRepository
                         .findById(request.getCategoriaId())
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Categoría no encontrada."
                                 )
-                        );
+                        );*/
+
+        Categoria categoria = null;
+
+        try {
+            log.info("Llamando a AIService para clasificar: '{}'", request.getDescripcion());
+
+            String nombreCategoriaAI = aiService.obtenerCategoria(request.getDescripcion());
+
+            if (nombreCategoriaAI != null) {
+                nombreCategoriaAI = nombreCategoriaAI.toUpperCase().trim();
+                log.info("La IA devolvió la categoría: {}", nombreCategoriaAI);
+
+                categoria = categoriaRepository.findByNombre(nombreCategoriaAI).orElse(null);
+            }
+
+        } catch (Exception e) {
+            log.error("Error al obtener la categoría desde AIService: {}", e.getMessage());
+        }
+
+        if (categoria == null) {
+            log.warn("Asignando categoría por defecto 'OTROS'.");
+            categoria = categoriaRepository.findByNombre("OTROS")
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Categoría por defecto 'OTROS' no encontrada en la Base de Datos."
+                    ));
+        }
 
         Transaccion transaccion =
                 Transaccion.builder()
@@ -302,7 +330,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
 
     // =========================================================
-    // ACTUALIZAR TRANSACCION
+    // ACTUALIZAR TRANSACCION CON PREDICCIÓN DE AI
     // =========================================================
 
     @Override
@@ -338,7 +366,7 @@ public class TransaccionServiceImpl implements TransaccionService {
             );
         }
 
-        // Buscar categoría
+        /*/ Buscar categoría
         Categoria categoria =
                 categoriaRepository
                         .findById(request.getCategoriaId())
@@ -346,7 +374,36 @@ public class TransaccionServiceImpl implements TransaccionService {
                                 new ResourceNotFoundException(
                                         "Categoría no encontrada."
                                 )
-                        );
+                        );*/
+
+        Categoria categoria = null;
+
+        if (request.getCategoriaId() != null) {
+            categoria = categoriaRepository.findById(request.getCategoriaId())
+                    .orElse(null);
+        }
+
+        if (categoria == null) {
+            try {
+                log.info("Llamando a AIService para clasificar la edición: '{}'", request.getDescripcion());
+                String nombreCategoriaIA = aiService.obtenerCategoria(request.getDescripcion());
+
+                if (nombreCategoriaIA != null) {
+                    nombreCategoriaIA = nombreCategoriaIA.toUpperCase().trim();
+                    categoria = categoriaRepository.findByNombre(nombreCategoriaIA).orElse(null);
+                }
+            } catch (Exception e) {
+                log.error("Error al obtener categoría por IA en actualización: {}", e.getMessage());
+            }
+        }
+
+        if (categoria == null) {
+            log.warn("Asignando categoría por defecto 'OTROS' en la actualización.");
+            categoria = categoriaRepository.findByNombre("OTROS")
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Categoría por defecto 'OTROS' no encontrada en la Base de Datos."
+                    ));
+        }
 
         //Validar el tipo de categoria
         validarTipo(request.getTipo());
@@ -393,6 +450,9 @@ public class TransaccionServiceImpl implements TransaccionService {
                 transaccionRepository.save(
                         transaccion
                 );
+
+        log.info("Transacción {} actualizada correctamente con categoría '{}'",
+                actualizada.getTransaccionId(), categoria.getNombre());
 
         return convertirRespuesta(actualizada);
     }
