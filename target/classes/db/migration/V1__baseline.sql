@@ -1,0 +1,2 @@
+-- Baseline inicial Finance AI
+-- La estructura actual de BD ya existe
